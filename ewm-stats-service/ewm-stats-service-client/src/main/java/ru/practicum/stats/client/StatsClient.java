@@ -1,5 +1,6 @@
 package ru.practicum.stats.client;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -23,7 +24,7 @@ public class StatsClient {
     private final RestTemplate restTemplate;
     private final String baseUrl;
 
-    public StatsClient(String baseUrl) {
+    public StatsClient(@Value("${stats-service.url:http://localhost:9090}") String baseUrl) {
         this(new RestTemplate(), baseUrl);
     }
 
