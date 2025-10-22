@@ -3,6 +3,7 @@ package ru.practicum.ewm.mapper;
 import lombok.experimental.UtilityClass;
 import ru.practicum.ewm.dto.CategoryDto;
 import ru.practicum.ewm.dto.NewCategoryDto;
+import ru.practicum.ewm.dto.CategoryDto;
 import ru.practicum.ewm.model.Category;
 
 @UtilityClass

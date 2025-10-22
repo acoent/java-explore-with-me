@@ -1,6 +1,5 @@
 package ru.practicum.ewm.repository;
 
-import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -8,6 +7,7 @@ import ru.practicum.ewm.model.ParticipationRequest;
 import ru.practicum.ewm.model.RequestStatus;
 import ru.practicum.ewm.repository.projection.EventRequestCount;
 
+import jakarta.persistence.LockModeType;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
