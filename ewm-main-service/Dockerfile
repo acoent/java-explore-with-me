@@ -4,8 +4,11 @@ WORKDIR /workspace
 # Copy Maven descriptors first to cache dependencies
 COPY pom.xml pom.xml
 COPY ewm-main-service/pom.xml ewm-main-service/pom.xml
+COPY ewm-stats-service/pom.xml ewm-stats-service/pom.xml
+COPY ewm-stats-service/ewm-stats-service-dto/pom.xml ewm-stats-service/ewm-stats-service-dto/pom.xml
+COPY ewm-stats-service/ewm-stats-service-client/pom.xml ewm-stats-service/ewm-stats-service-client/pom.xml
 
-RUN mvn -f ewm-main-service/pom.xml dependency:go-offline
+RUN mvn dependency:go-offline -pl ewm-main-service -am
 
 COPY . .
 RUN mvn -f ewm-main-service/pom.xml package -DskipTests
