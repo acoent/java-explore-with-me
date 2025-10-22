@@ -9,10 +9,10 @@ COPY ewm-stats-service/ewm-stats-service-dto/pom.xml ewm-stats-service/ewm-stats
 COPY ewm-stats-service/ewm-stats-service-client/pom.xml ewm-stats-service/ewm-stats-service-client/pom.xml
 COPY ewm-stats-service/ewm-stats-service-server/pom.xml ewm-stats-service/ewm-stats-service-server/pom.xml
 
-RUN mvn dependency:go-offline -pl ewm-main-service -am
+RUN mvn -pl ewm-main-service -am dependency:go-offline
 
 COPY . .
-RUN mvn -f ewm-main-service/pom.xml package -DskipTests
+RUN mvn -pl ewm-main-service -am package -DskipTests
 
 FROM eclipse-temurin:21-jre
 WORKDIR /opt/app
