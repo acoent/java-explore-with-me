@@ -44,8 +44,10 @@ services:
       SPRING_DATASOURCE_USERNAME: ewm
       SPRING_DATASOURCE_PASSWORD: ewm
       SPRING_PROFILES_ACTIVE: prod
+      STATS_SERVICE_URL: http://stats-server:9090
     depends_on:
       - ewm-db
+      - stats-server
     ports:
       - "8080:8080"
 
