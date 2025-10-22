@@ -15,6 +15,9 @@ COPY . .
 RUN mvn -B package -DskipTests
 
 FROM eclipse-temurin:21-jre
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/app
 
 COPY --from=build /workspace/ewm-main-service/target/ewm-main-service-0.0.1-SNAPSHOT.jar app.jar
