@@ -33,14 +33,14 @@ public class PublicEventController {
                                          @RequestParam(defaultValue = "0") @Min(0) int from,
                                          @RequestParam(defaultValue = "10") @Positive int size,
                                          HttpServletRequest request) {
-        statsService.hit(buildUri(request), request.getRemoteAddr());
+        statsService.hit(buildUri(request), resolveClientIp(request));
         return eventService.findPublicEvents(text, categories, paid, rangeStart, rangeEnd,
                 onlyAvailable, sort, from, size);
     }
 
     @GetMapping("/{id}")
     public EventFullDto getEvent(@PathVariable long id, HttpServletRequest request) {
-        statsService.hit(buildUri(request), request.getRemoteAddr());
+        statsService.hit(buildUri(request), resolveClientIp(request));
         return eventService.getPublishedEvent(id);
     }
 
@@ -52,5 +52,21 @@ public class PublicEventController {
         }
         return uri;
     }
-}
 
+    private String resolveClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            int commaIndex = forwarded.indexOf(',');
+            String ip = commaIndex >= 0 ? forwarded.substring(0, commaIndex) : forwarded;
+            ip = ip.trim();
+            if (!ip.isEmpty()) {
+                return ip;
+            }
+        }
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) {
+            return realIp.trim();
+        }
+        return request.getRemoteAddr();
+    }
+}
