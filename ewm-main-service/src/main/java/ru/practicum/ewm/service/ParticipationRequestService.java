@@ -91,6 +91,13 @@ public class ParticipationRequestService {
                                                               long eventId,
                                                               EventRequestStatusUpdateRequest request) {
         Event event = getEventForInitiator(userId, eventId);
+        int limit = event.getParticipantLimit() == null ? 0 : event.getParticipantLimit();
+        if (request.getStatus() == RequestUpdateStatus.CONFIRMED && limit > 0) {
+            long alreadyConfirmed = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
+            if (alreadyConfirmed >= limit) {
+                throw new ConflictException("Participant limit reached");
+            }
+        }
         if (request.getRequestIds() == null || request.getRequestIds().isEmpty()) {
             return EventRequestStatusUpdateResult.builder()
                     .confirmedRequests(List.of())
@@ -113,7 +120,6 @@ public class ParticipationRequestService {
         RequestUpdateStatus status = request.getStatus();
         List<ParticipationRequest> confirmed = new ArrayList<>();
         List<ParticipationRequest> rejected = new ArrayList<>();
-        int limit = event.getParticipantLimit() == null ? 0 : event.getParticipantLimit();
         if (status == RequestUpdateStatus.CONFIRMED) {
             long alreadyConfirmed = requestRepository.countByEventIdAndStatus(eventId, RequestStatus.CONFIRMED);
             for (ParticipationRequest participationRequest : requests) {
@@ -158,4 +164,3 @@ public class ParticipationRequestService {
         }
     }
 }
-

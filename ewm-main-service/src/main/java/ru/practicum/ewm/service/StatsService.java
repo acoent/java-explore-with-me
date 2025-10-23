@@ -52,7 +52,7 @@ public class StatsService {
                 .map(id -> "/events/" + id)
                 .toList();
         try {
-            List<ViewStatsDto> stats = statsClient.getStats(actualStart, actualEnd, uris, false);
+            List<ViewStatsDto> stats = statsClient.getStats(actualStart, actualEnd, uris, true);
             Map<Long, Long> result = new HashMap<>();
             for (ViewStatsDto stat : stats) {
                 Long eventId = extractEventId(stat.getUri());
@@ -84,4 +84,3 @@ public class StatsService {
         }
     }
 }
-

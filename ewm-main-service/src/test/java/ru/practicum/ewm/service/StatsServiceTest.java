@@ -57,7 +57,7 @@ class StatsServiceTest {
     @Test
     @DisplayName("getEventViews returns map of hits keyed by event id")
     void getEventViewsReturnsHits() {
-        when(statsClient.getStats(any(), any(), anyList(), eq(false))).thenReturn(List.of(
+        when(statsClient.getStats(any(), any(), anyList(), eq(true))).thenReturn(List.of(
                 ViewStatsDto.builder().app("ewm-main-service").uri("/events/1").hits(5).build()
         ));
 
@@ -73,7 +73,7 @@ class StatsServiceTest {
     @DisplayName("getEventViews returns zeros when client fails")
     void getEventViewsHandlesException() {
         doThrow(new StatsClientException("fail", new RuntimeException()))
-                .when(statsClient).getStats(any(), any(), anyList(), eq(false));
+                .when(statsClient).getStats(any(), any(), anyList(), eq(true));
 
         Map<Long, Long> result = statsService.getEventViews(List.of(1L, 2L),
                 LocalDateTime.now(clock).minusDays(1),
