@@ -10,11 +10,7 @@ import ru.practicum.stats.dto.ViewStatsDto;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -26,6 +22,7 @@ public class StatsService {
 
     private final StatsClient statsClient;
     private final Clock clock;
+
     public void hit(String uri, String ip) {
         if (uri == null || ip == null) {
             return;
