@@ -21,3 +21,12 @@ spring:
 logging:
   level:
     ru.practicum.stats: debug
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: always

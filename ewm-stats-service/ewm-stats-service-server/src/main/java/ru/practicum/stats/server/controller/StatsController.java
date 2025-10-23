@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.stats.dto.EndpointHitDto;
 import ru.practicum.stats.dto.StatsConstants;
 import ru.practicum.stats.dto.ViewStatsDto;
+import ru.practicum.stats.server.exception.MissingRequiredParameterException;
 import ru.practicum.stats.server.service.StatsService;
 
 import java.time.LocalDateTime;
@@ -32,10 +33,17 @@ public class StatsController {
     }
 
     @GetMapping("/stats")
-    public List<ViewStatsDto> getStats(@RequestParam String start,
-                                       @RequestParam String end,
+    public List<ViewStatsDto> getStats(@RequestParam(required = false) String start,
+                                       @RequestParam(required = false) String end,
                                        @RequestParam(required = false) List<String> uris,
                                        @RequestParam(defaultValue = "false") boolean unique) {
+        if (start == null || start.isBlank()) {
+            throw new MissingRequiredParameterException("start");
+        }
+        if (end == null || end.isBlank()) {
+            throw new MissingRequiredParameterException("end");
+        }
+
         LocalDateTime startDate = LocalDateTime.parse(start, FORMATTER);
         LocalDateTime endDate = LocalDateTime.parse(end, FORMATTER);
 
