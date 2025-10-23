@@ -1,17 +1,22 @@
 package ru.practicum.ewm.dto;
 
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.List;
 
-@Value
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class UpdateCompilationRequest {
-    List<Long> events;
-    Boolean pinned;
-    @Size(min = 1, max = 128)
-    String title;
+    private List<Long> events;
+    private Boolean pinned;
+    @Size(min = 1, max = 50)
+    private String title;
 }
-

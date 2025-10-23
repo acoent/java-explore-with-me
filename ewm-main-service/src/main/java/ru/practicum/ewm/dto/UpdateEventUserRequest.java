@@ -3,42 +3,49 @@ package ru.practicum.ewm.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import ru.practicum.ewm.model.UserStateAction;
 import ru.practicum.stats.dto.StatsConstants;
 
 import java.time.LocalDateTime;
 
-@Value
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class UpdateEventUserRequest {
 
     @Size(min = 20, max = 2000)
-    String annotation;
+    private String annotation;
 
-    Long category;
+    private Long category;
 
     @Size(min = 20, max = 7000)
-    String description;
+    private String description;
 
     @Future
     @JsonFormat(pattern = StatsConstants.DATE_TIME_FORMAT)
-    LocalDateTime eventDate;
+    private LocalDateTime eventDate;
 
     @Valid
-    LocationDto location;
+    private LocationDto location;
 
-    Boolean paid;
+    private Boolean paid;
 
-    Integer participantLimit;
+    @PositiveOrZero
+    private Integer participantLimit;
 
-    Boolean requestModeration;
+    private Boolean requestModeration;
 
-    UserStateAction stateAction;
+    private UserStateAction stateAction;
 
     @Size(min = 3, max = 120)
-    String title;
+    private String title;
 }
-

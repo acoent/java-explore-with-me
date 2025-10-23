@@ -2,15 +2,20 @@ package ru.practicum.ewm.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-@Value
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class NewCategoryDto {
 
     @NotBlank
-    @Size(min = 1, max = 128)
-    String name;
+    @Size(min = 1, max = 50)
+    private String name;
 }
-

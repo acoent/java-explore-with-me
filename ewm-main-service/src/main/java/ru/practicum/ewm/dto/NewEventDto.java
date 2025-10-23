@@ -3,48 +3,50 @@ package ru.practicum.ewm.dto;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Value;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import ru.practicum.stats.dto.StatsConstants;
 
 import java.time.LocalDateTime;
 
-@Value
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 @Builder
 public class NewEventDto {
 
     @NotBlank
     @Size(min = 20, max = 2000)
-    String annotation;
+    private String annotation;
 
     @NotNull
-    Long category;
+    private Long category;
 
     @NotBlank
     @Size(min = 20, max = 7000)
-    String description;
+    private String description;
 
     @NotNull
     @Future
     @JsonFormat(pattern = StatsConstants.DATE_TIME_FORMAT)
-    LocalDateTime eventDate;
+    private LocalDateTime eventDate;
 
     @NotNull
     @Valid
-    LocationDto location;
+    private LocationDto location;
 
-    @Builder.Default
-    Boolean paid = Boolean.FALSE;
+    private Boolean paid;
 
     @PositiveOrZero
-    @Builder.Default
-    Integer participantLimit = 0;
+    private Integer participantLimit;
 
-    @Builder.Default
-    Boolean requestModeration = Boolean.TRUE;
+    private Boolean requestModeration;
 
     @NotBlank
     @Size(min = 3, max = 120)
-    String title;
+    private String title;
 }
-
