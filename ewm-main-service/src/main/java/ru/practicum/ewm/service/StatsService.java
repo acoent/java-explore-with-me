@@ -10,8 +10,12 @@ import ru.practicum.stats.dto.ViewStatsDto;
 
 import java.time.Clock;
 import java.time.LocalDateTime;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -22,8 +26,6 @@ public class StatsService {
 
     private final StatsClient statsClient;
     private final Clock clock;
-    private final Map<Long, Set<String>> localUniqueViewCache = new ConcurrentHashMap<>();
-
     public void hit(String uri, String ip) {
         if (uri == null || ip == null) {
             return;
@@ -43,7 +45,6 @@ public class StatsService {
         } catch (StatsClientException ex) {
             log.warn("Failed to register endpoint hit for uri={} ip={}: {}", uri, ip, ex.getMessage());
         }
-        recordLocalView(uri, sanitizedIp);
     }
 
     public Map<Long, Long> getEventViews(Collection<Long> eventIds,
@@ -58,7 +59,6 @@ public class StatsService {
                 .map(id -> "/events/" + id)
                 .toList();
         Map<Long, Long> result = new HashMap<>();
-        boolean statsAvailable = true;
         try {
             List<ViewStatsDto> stats = statsClient.getStats(actualStart, actualEnd, uris, true);
             for (ViewStatsDto stat : stats) {
@@ -69,22 +69,10 @@ public class StatsService {
             }
         } catch (StatsClientException | IllegalArgumentException ex) {
             log.warn("Failed to retrieve stats: {}", ex.getMessage());
-            statsAvailable = false;
+            return eventIds.stream().collect(Collectors.toMap(id -> id, id -> 0L));
         }
         // ensure every requested event id is present
         eventIds.forEach(id -> result.putIfAbsent(id, 0L));
-        // merge with local cache (fallback or to close gaps between calls)
-        for (Long eventId : eventIds) {
-            Set<String> localIps = localUniqueViewCache.get(eventId);
-            if (localIps != null && !localIps.isEmpty()) {
-                long localCount = localIps.size();
-                if (!statsAvailable) {
-                    result.put(eventId, localCount);
-                } else {
-                    result.compute(eventId, (id, current) -> current == null ? localCount : Math.max(current, localCount));
-                }
-            }
-        }
         return result;
     }
 
@@ -103,13 +91,4 @@ public class StatsService {
         }
     }
 
-    private void recordLocalView(String uri, String ip) {
-        Long eventId = extractEventId(uri);
-        if (eventId == null) {
-            return;
-        }
-        localUniqueViewCache
-                .computeIfAbsent(eventId, key -> ConcurrentHashMap.newKeySet())
-                .add(ip);
-    }
 }
