@@ -68,6 +68,5 @@ public class Event {
     private Category category;
 
     @ManyToMany(mappedBy = "events", fetch = FetchType.LAZY)
-    @Builder.Default
     private Set<Compilation> compilations = new HashSet<>();
 }

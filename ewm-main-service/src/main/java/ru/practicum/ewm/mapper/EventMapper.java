@@ -8,6 +8,7 @@ import ru.practicum.ewm.model.EventState;
 import ru.practicum.ewm.model.User;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 
 @UtilityClass
 public class EventMapper {
@@ -32,6 +33,7 @@ public class EventMapper {
                 .state(EventState.PENDING)
                 .initiator(initiator)
                 .category(category)
+                .compilations(new HashSet<>())
                 .build();
     }
 
@@ -142,4 +144,3 @@ public class EventMapper {
                 .build();
     }
 }
-

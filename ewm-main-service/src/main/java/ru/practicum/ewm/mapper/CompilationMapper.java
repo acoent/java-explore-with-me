@@ -8,6 +8,7 @@ import ru.practicum.ewm.dto.UpdateCompilationRequest;
 import ru.practicum.ewm.model.Compilation;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 
 @UtilityClass
@@ -20,6 +21,7 @@ public class CompilationMapper {
         return Compilation.builder()
                 .title(dto.getTitle())
                 .pinned(Boolean.TRUE.equals(dto.getPinned()))
+                .events(new HashSet<>())
                 .build();
     }
 
