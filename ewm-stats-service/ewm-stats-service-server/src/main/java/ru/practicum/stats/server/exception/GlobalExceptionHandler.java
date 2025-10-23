@@ -42,7 +42,7 @@ public class GlobalExceptionHandler {
                 .build();
     }
 
-    @ExceptionHandler({InvalidDateRangeException.class, DateTimeParseException.class,
+    @ExceptionHandler({InvalidDateRangeException.class, MissingRequiredParameterException.class, DateTimeParseException.class,
             MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleBadRequest(RuntimeException ex) {

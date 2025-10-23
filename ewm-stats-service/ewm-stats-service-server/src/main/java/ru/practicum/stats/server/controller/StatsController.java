@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import ru.practicum.stats.dto.EndpointHitDto;
 import ru.practicum.stats.dto.StatsConstants;
 import ru.practicum.stats.dto.ViewStatsDto;
+import ru.practicum.stats.server.exception.MissingRequiredParameterException;
 import ru.practicum.stats.server.service.StatsService;
 
 import java.time.LocalDateTime;
@@ -37,10 +38,10 @@ public class StatsController {
                                        @RequestParam(required = false) List<String> uris,
                                        @RequestParam(defaultValue = "false") boolean unique) {
         if (start == null || start.isBlank()) {
-            throw new IllegalArgumentException("Parameter 'start' must be specified");
+            throw new MissingRequiredParameterException("start");
         }
         if (end == null || end.isBlank()) {
-            throw new IllegalArgumentException("Parameter 'end' must be specified");
+            throw new MissingRequiredParameterException("end");
         }
 
         LocalDateTime startDate = LocalDateTime.parse(start, FORMATTER);
