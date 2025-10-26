@@ -38,39 +38,14 @@ public class EventMapper {
     }
 
     public void updateEventFromUser(Event event, UpdateEventUserRequest request) {
-        if (request == null) {
-            return;
-        }
-        if (request.getAnnotation() != null) {
-            event.setAnnotation(request.getAnnotation());
-        }
-        if (request.getCategory() != null) {
-            // category update handled in service
-        }
-        if (request.getDescription() != null) {
-            event.setDescription(request.getDescription());
-        }
-        if (request.getEventDate() != null) {
-            event.setEventDate(request.getEventDate());
-        }
-        if (request.getLocation() != null) {
-            event.setLocation(LocationMapper.toEntity(request.getLocation()));
-        }
-        if (request.getPaid() != null) {
-            event.setPaid(request.getPaid());
-        }
-        if (request.getParticipantLimit() != null) {
-            event.setParticipantLimit(request.getParticipantLimit());
-        }
-        if (request.getRequestModeration() != null) {
-            event.setRequestModeration(request.getRequestModeration());
-        }
-        if (request.getTitle() != null) {
-            event.setTitle(request.getTitle());
-        }
+        applyCommonUpdates(event, request);
     }
 
     public void updateEventFromAdmin(Event event, UpdateEventAdminRequest request) {
+        applyCommonUpdates(event, request);
+    }
+
+    private void applyCommonUpdates(Event event, BaseUpdateEventRequest request) {
         if (request == null) {
             return;
         }

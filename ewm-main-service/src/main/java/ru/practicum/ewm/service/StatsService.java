@@ -1,7 +1,8 @@
 package ru.practicum.ewm.service;
 
-import lombok.RequiredArgsConstructor;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import ru.practicum.stats.client.StatsClient;
 import ru.practicum.stats.client.StatsClientException;
@@ -15,16 +16,29 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class StatsService {
 
-    private static final String APP_NAME = "ewm-main-service";
+    private static final String DEFAULT_APP_NAME = "ewm-main-service";
 
     private final StatsClient statsClient;
     private final Clock clock;
+    private final String appName;
     private final Map<Long, Set<String>> localUniqueViews = new ConcurrentHashMap<>();
 
-    public void hit(String uri, String ip) {
+    public StatsService(StatsClient statsClient,
+                        Clock clock,
+                        @Value("${ewm.app-name:" + DEFAULT_APP_NAME + "}") String appName) {
+        this.statsClient = statsClient;
+        this.clock = clock;
+        this.appName = appName;
+    }
+
+    public void hit(HttpServletRequest request) {
+        if (request == null) {
+            return;
+        }
+        String uri = buildUri(request);
+        String ip = resolveClientIp(request);
         if (uri == null || ip == null) {
             return;
         }
@@ -33,7 +47,7 @@ public class StatsService {
             return;
         }
         EndpointHitDto hit = EndpointHitDto.builder()
-                .app(APP_NAME)
+                .app(resolveAppName())
                 .uri(uri)
                 .ip(sanitizedIp)
                 .timestamp(LocalDateTime.now(clock))
@@ -116,5 +130,94 @@ public class StatsService {
         localUniqueViews
                 .computeIfAbsent(eventId, key -> ConcurrentHashMap.newKeySet())
                 .add(ip);
+    }
+
+    private String resolveAppName() {
+        return (appName == null || appName.isBlank()) ? DEFAULT_APP_NAME : appName;
+    }
+
+    private String buildUri(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String uri = request.getRequestURI();
+        String query = request.getQueryString();
+        if (query != null && !query.isBlank()) {
+            uri += "?" + query;
+        }
+        return uri;
+    }
+
+    private String resolveClientIp(HttpServletRequest request) {
+        if (request == null) {
+            return null;
+        }
+        String ip = extractFromForwardedFor(request.getHeader("X-Forwarded-For"));
+        if (ip == null) {
+            ip = extractFromForwardedHeader(request.getHeader("Forwarded"));
+        }
+        if (ip == null) {
+            ip = sanitizeIp(request.getHeader("X-Real-IP"));
+        }
+        if (ip == null) {
+            ip = sanitizeIp(request.getRemoteAddr());
+        }
+        return ip;
+    }
+
+    private String extractFromForwardedFor(String header) {
+        if (header == null || header.isBlank()) {
+            return null;
+        }
+        String[] parts = header.split(",");
+        for (String part : parts) {
+            String candidate = sanitizeIp(part);
+            if (candidate != null && !candidate.isEmpty()) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
+    private String extractFromForwardedHeader(String header) {
+        if (header == null || header.isBlank()) {
+            return null;
+        }
+        String[] segments = header.split(";");
+        for (String segment : segments) {
+            String trimmed = segment.trim();
+            if (trimmed.toLowerCase().startsWith("for=")) {
+                String value = trimmed.substring(4);
+                if (value.startsWith("\"") && value.endsWith("\"")) {
+                    value = value.substring(1, value.length() - 1);
+                }
+                return sanitizeIp(value);
+            }
+        }
+        return null;
+    }
+
+    private String sanitizeIp(String value) {
+        if (value == null) {
+            return null;
+        }
+        String candidate = value.trim();
+        if (candidate.isEmpty()) {
+            return null;
+        }
+        if (candidate.startsWith("[") && candidate.contains("]")) {
+            int closing = candidate.indexOf(']');
+            String inside = candidate.substring(1, closing);
+            String remainder = candidate.substring(closing + 1);
+            if (remainder.startsWith(":")) {
+                return inside;
+            }
+            return inside;
+        }
+        int colonIndex = candidate.indexOf(':');
+        if (colonIndex > 0 && candidate.indexOf('.') >= 0) {
+            return candidate.substring(0, colonIndex);
+        }
+        return candidate;
     }
 }

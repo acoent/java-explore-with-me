@@ -22,3 +22,6 @@ spring:
 
 stats-service:
   url: http://localhost:9090
+
+ewm:
+  app-name: ewm-main-service

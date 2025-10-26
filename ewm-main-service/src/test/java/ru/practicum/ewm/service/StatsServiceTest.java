@@ -1,5 +1,6 @@
 package ru.practicum.ewm.service;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,17 +32,27 @@ class StatsServiceTest {
     @Mock
     private StatsClient statsClient;
 
+    @Mock
+    private HttpServletRequest request;
+
     private StatsService statsService;
 
     @BeforeEach
     void setUp() {
-        statsService = new StatsService(statsClient, clock);
+        statsService = new StatsService(statsClient, clock, "ewm-main-service");
     }
 
     @Test
     @DisplayName("hit delegates call to stats client")
     void hitDelegatesToClient() {
-        statsService.hit("/events", "127.0.0.1");
+        when(request.getRequestURI()).thenReturn("/events");
+        when(request.getQueryString()).thenReturn(null);
+        when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+        when(request.getHeader("Forwarded")).thenReturn(null);
+        when(request.getHeader("X-Real-IP")).thenReturn(null);
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+
+        statsService.hit(request);
 
         ArgumentCaptor<EndpointHitDto> captor = ArgumentCaptor.forClass(EndpointHitDto.class);
         verify(statsClient).hit(captor.capture());

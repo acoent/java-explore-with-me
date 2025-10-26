@@ -1,6 +1,9 @@
 server:
   port: 8080
 
+ewm:
+  app-name: ewm-main-service
+
 spring:
   datasource:
     driver-class-name: org.postgresql.Driver

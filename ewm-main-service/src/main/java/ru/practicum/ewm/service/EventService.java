@@ -334,8 +334,9 @@ public class EventService {
         List<Long> ids = events.stream().map(Event::getId).toList();
         LocalDateTime earliest = events.stream()
                 .map(Event::getCreatedOn)
+                .filter(Objects::nonNull)
                 .min(LocalDateTime::compareTo)
-                .orElse(LocalDateTime.now(clock).minusYears(1));
+                .orElseThrow(() -> new IllegalStateException("Event must have creation timestamp"));
         LocalDateTime end = LocalDateTime.now(clock);
         return statsService.getEventViews(ids, earliest, end);
     }

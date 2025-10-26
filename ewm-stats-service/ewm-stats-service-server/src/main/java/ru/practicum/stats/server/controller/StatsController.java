@@ -33,8 +33,8 @@ public class StatsController {
     }
 
     @GetMapping("/stats")
-    public List<ViewStatsDto> getStats(@RequestParam(required = false) String start,
-                                       @RequestParam(required = false) String end,
+    public List<ViewStatsDto> getStats(@RequestParam String start,
+                                       @RequestParam String end,
                                        @RequestParam(required = false) List<String> uris,
                                        @RequestParam(defaultValue = "false") boolean unique) {
         if (start == null || start.isBlank()) {
