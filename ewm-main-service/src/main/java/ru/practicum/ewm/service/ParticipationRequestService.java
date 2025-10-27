@@ -104,7 +104,7 @@ public class ParticipationRequestService {
                     .rejectedRequests(List.of())
                     .build();
         }
-        List<ParticipationRequest> requests = requestRepository.findAllByIdInForUpdate(request.getRequestIds());
+        List<ParticipationRequest> requests = requestRepository.findAllByIdIn(request.getRequestIds());
         if (requests.size() != request.getRequestIds().size()) {
             throw new NotFoundException("One or more requests were not found");
         }
