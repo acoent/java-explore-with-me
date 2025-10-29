@@ -15,6 +15,9 @@ COPY . .
 RUN mvn -pl ewm-stats-service/ewm-stats-service-server -am package -DskipTests
 
 FROM eclipse-temurin:21-jre
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /opt/app
 
 COPY --from=build /workspace/ewm-stats-service/ewm-stats-service-server/target/ewm-stats-service-server-0.0.1-SNAPSHOT.jar app.jar

@@ -32,8 +32,8 @@ public class StatsController {
     }
 
     @GetMapping("/stats")
-    public List<ViewStatsDto> getStats(@RequestParam String start,
-                                       @RequestParam String end,
+    public List<ViewStatsDto> getStats(@RequestParam(required = true) String start,
+                                       @RequestParam(required = true) String end,
                                        @RequestParam(required = false) List<String> uris,
                                        @RequestParam(defaultValue = "false") boolean unique) {
         LocalDateTime startDate = LocalDateTime.parse(start, FORMATTER);
