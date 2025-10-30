@@ -56,3 +56,16 @@ CREATE TABLE IF NOT EXISTS requests (
 CREATE INDEX IF NOT EXISTS idx_requests_event_id ON requests(event_id);
 CREATE INDEX IF NOT EXISTS idx_requests_requester_id ON requests(requester_id);
 CREATE INDEX IF NOT EXISTS idx_requests_status ON requests(status);
+
+CREATE TABLE IF NOT EXISTS comments (
+    id BIGSERIAL PRIMARY KEY,
+    text VARCHAR(1000) NOT NULL,
+    event_id BIGINT NOT NULL REFERENCES events(id) ON DELETE CASCADE,
+    author_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    status VARCHAR(16) NOT NULL,
+    created_on TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+    updated_on TIMESTAMP WITHOUT TIME ZONE
+);
+
+CREATE INDEX IF NOT EXISTS idx_comments_event_status ON comments(event_id, status);
+CREATE INDEX IF NOT EXISTS idx_comments_author ON comments(author_id);

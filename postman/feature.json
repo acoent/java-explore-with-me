@@ -1,0 +1,487 @@
+{
+  "info": {
+    "_postman_id": "d2f0f5d3-df78-49b0-9f1f-0d483b3c6f25",
+    "name": "ExploreWithMe Comments Feature",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Category",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (!pm.collectionVariables.get('traceSuffix')) {",
+              "    pm.collectionVariables.set('traceSuffix', Date.now().toString());",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Category created', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('id');",
+              "    pm.collectionVariables.set('categoryId', body.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"comments-category-{{traceSuffix}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/admin/categories",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "categories"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Event Initiator",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Initiator created', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('id');",
+              "    pm.collectionVariables.set('initiatorId', body.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"initiator-{{traceSuffix}}@test.com\",\n  \"name\": \"Initiator {{traceSuffix}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/admin/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Comment Author",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Comment author created', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('id');",
+              "    pm.collectionVariables.set('userId', body.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"commenter-{{traceSuffix}}@test.com\",\n  \"name\": \"Commenter {{traceSuffix}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/admin/users",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "users"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Event",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const eventDate = new Date(Date.now() + 4 * 60 * 60 * 1000)",
+              "    .toISOString()",
+              "    .replace('T', ' ')",
+              "    .substring(0, 19);",
+              "pm.collectionVariables.set('eventDate', eventDate);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Event created', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body).to.have.property('id');",
+              "    pm.collectionVariables.set('eventId', body.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"annotation\": \"Annotation for comments {{traceSuffix}}\",\n  \"category\": {{categoryId}},\n  \"description\": \"Description for comments {{traceSuffix}}\",\n  \"eventDate\": \"{{eventDate}}\",\n  \"location\": {\n    \"lat\": 55.75,\n    \"lon\": 37.62\n  },\n  \"paid\": false,\n  \"participantLimit\": 10,\n  \"requestModeration\": true,\n  \"title\": \"Event for comments {{traceSuffix}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/{{initiatorId}}/events",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "{{initiatorId}}",
+            "events"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Publish Event",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Event published', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.state).to.eql('PUBLISHED');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"stateAction\": \"PUBLISH_EVENT\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/admin/events/{{eventId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "events",
+            "{{eventId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Create Comment",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Comment created', function () {",
+              "    pm.response.to.have.status(201);",
+              "    const data = pm.response.json();",
+              "    pm.expect(data).to.have.property('id');",
+              "    pm.expect(data.status).to.eql('PENDING');",
+              "    pm.collectionVariables.set('commentId', data.id);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Отличное событие!\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}/events/{{eventId}}/comments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "{{userId}}",
+            "events",
+            "{{eventId}}",
+            "comments"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Pending Comments (Admin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Pending comments retrieved', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const data = pm.response.json();",
+              "    pm.expect(Array.isArray(data)).to.be.true;",
+              "    pm.expect(data.length).to.be.above(0);",
+              "    if (data.length > 0) {",
+              "        pm.collectionVariables.set('commentId', data[0].id);",
+              "    }",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/admin/comments?status=PENDING",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "comments"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "PENDING"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Publish Comment (Admin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Comment published', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const data = pm.response.json();",
+              "    pm.expect(data.status).to.eql('PUBLISHED');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"PUBLISHED\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/admin/comments/{{commentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "comments",
+            "{{commentId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Event Comments (Public)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Published comments visible', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const data = pm.response.json();",
+              "    pm.expect(Array.isArray(data)).to.be.true;",
+              "    pm.expect(data.length).to.be.above(0);",
+              "    pm.expect(data[0].status).to.eql('PUBLISHED');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/events/{{eventId}}/comments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "events",
+            "{{eventId}}",
+            "comments"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Comment (User)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Comment updated and returned to moderation', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const data = pm.response.json();",
+              "    pm.expect(data.status).to.eql('PENDING');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"Обновлённый комментарий\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "{{userId}}",
+            "comments",
+            "{{commentId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Delete Comment (User)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Comment deleted', function () {",
+              "    pm.response.to.have.status(204);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "DELETE",
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "{{userId}}",
+            "comments",
+            "{{commentId}}"
+          ]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    }
+  ]
+}
