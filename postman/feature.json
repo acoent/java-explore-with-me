@@ -20,13 +20,35 @@
           "        }",
           "        return base + path;",
           "    };",
+          "    helper.ensureJsonBody = function (payload) {",
+          "        const raw = JSON.stringify(payload, null, 2);",
+          "        if (pm.request.body && pm.request.body.update) {",
+          "            pm.request.body.update({",
+          "                mode: 'raw',",
+          "                raw: raw",
+          "            });",
+          "        }",
+          "        if (pm.request.headers && pm.request.headers.upsert) {",
+          "            pm.request.headers.upsert({",
+          "                key: 'Content-Type',",
+          "                value: 'application/json'",
+          "            });",
+          "        }",
+          "    };",
+          "    helper.configureRequest = function (method, path, body) {",
+          "        pm.request.method = method;",
+          "        pm.request.url = helper.buildUrl(path);",
+          "        if (body !== undefined) {",
+          "            helper.ensureJsonBody(body);",
+          "        }",
+          "    };",
           "    helper.formatDate = function (hoursAhead) {",
           "        const date = new Date(Date.now() + (hoursAhead || 24) * 60 * 60 * 1000);",
           "        const pad = function (value) {",
           "            return value.toString().padStart(2, '0');",
           "        };",
-          "        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' ' +",
-          "            pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());",
+          "        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' '",
+          "            + pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());",
           "    };",
           "    helper.buildRequest = function (method, path, body) {",
           "        const request = {",
@@ -177,9 +199,10 @@
               "    commentText: commentText,",
               "    createComment: false,",
               "    onComplete: function (ctx) {",
-              "        pm.variables.set('userId', ctx.userId);",
-              "        pm.variables.set('eventId', ctx.eventId);",
+              "        helper.configureRequest('POST', '/users/' + ctx.userId + '/events/' + ctx.eventId + '/comments', { text: commentText });",
               "        pm.variables.set('commentText', commentText);",
+              "        pm.variables.set('userId', String(ctx.userId));",
+              "        pm.variables.set('eventId', String(ctx.eventId));",
               "    }",
               "});"
             ]
@@ -210,7 +233,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"text\": \"{{commentText}}\"\n}"
+          "raw": "{\n  \"text\": \"\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/{{userId}}/events/{{eventId}}/comments",
@@ -241,7 +264,8 @@
               "    suffix: suffix,",
               "    createComment: true,",
               "    onComplete: function (ctx) {",
-              "        pm.variables.set('commentId', ctx.commentId);",
+              "        helper.configureRequest('PATCH', '/admin/comments/' + ctx.commentId, { status: 'PUBLISHED' });",
+              "        pm.variables.set('commentId', String(ctx.commentId));",
               "    }",
               "});"
             ]
@@ -301,7 +325,8 @@
               "    suffix: suffix,",
               "    createComment: true,",
               "    onComplete: function (ctx) {",
-              "        pm.variables.set('commentId', ctx.commentId);",
+              "        helper.configureRequest('PATCH', '/admin/comments/' + ctx.commentId, { status: 'REJECTED' });",
+              "        pm.variables.set('commentId', String(ctx.commentId));",
               "    }",
               "});"
             ]
@@ -366,8 +391,9 @@
               "        });",
               "    },",
               "    onComplete: function (ctx) {",
-              "        pm.variables.set('userId', ctx.userId);",
-              "        pm.variables.set('commentId', ctx.commentId);",
+              "        helper.configureRequest('PATCH', '/users/' + ctx.userId + '/comments/' + ctx.commentId, { text: updatedText });",
+              "        pm.variables.set('userId', String(ctx.userId));",
+              "        pm.variables.set('commentId', String(ctx.commentId));",
               "        pm.variables.set('updatedCommentText', updatedText);",
               "    }",
               "});"
@@ -399,7 +425,7 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"text\": \"{{updatedCommentText}}\"\n}"
+          "raw": "{\n  \"text\": \"\"\n}"
         },
         "url": {
           "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentId}}",
@@ -436,7 +462,8 @@
               "        });",
               "    },",
               "    onComplete: function (ctx) {",
-              "        pm.variables.set('eventId', ctx.eventId);",
+              "        helper.configureRequest('GET', '/events/' + ctx.eventId + '/comments');",
+              "        pm.variables.set('eventId', String(ctx.eventId));",
               "        pm.variables.set('commentText', commentText);",
               "    }",
               "});"
@@ -492,8 +519,9 @@
               "    suffix: suffix,",
               "    createComment: true,",
               "    onComplete: function (ctx) {",
-              "        pm.variables.set('userId', ctx.userId);",
-              "        pm.variables.set('commentId', ctx.commentId);",
+              "        helper.configureRequest('DELETE', '/users/' + ctx.userId + '/comments/' + ctx.commentId);",
+              "        pm.variables.set('userId', String(ctx.userId));",
+              "        pm.variables.set('commentId', String(ctx.commentId));",
               "    }",
               "});"
             ]
