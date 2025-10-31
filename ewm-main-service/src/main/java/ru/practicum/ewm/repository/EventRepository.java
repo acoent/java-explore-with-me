@@ -10,6 +10,7 @@ import ru.practicum.ewm.model.EventState;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Event> {
 
@@ -24,4 +25,6 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
     Page<Event> findAllByInitiatorId(long initiatorId, Pageable pageable);
 
     List<Event> findAllByInitiatorIdAndEventDateAfter(long initiatorId, LocalDateTime dateTime);
+
+    Optional<Event> findByIdAndState(long id, EventState state);
 }

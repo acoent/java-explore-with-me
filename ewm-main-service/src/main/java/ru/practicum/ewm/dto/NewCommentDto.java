@@ -11,7 +11,7 @@ public class NewCommentDto {
 
     @NotBlank
     @Size(min = 1, max = 1000)
-    String text;
+    private final String text;
 
     @JsonCreator
     public NewCommentDto(@JsonProperty("text") String text) {

@@ -11,14 +11,13 @@ import java.time.LocalDateTime;
 @Builder
 public class CommentDto {
 
-    Long id;
-    String text;
-    Long eventId;
-    UserShortDto author;
-    CommentStatus status;
+    private final Long id;
+    private final String text;
+    private final Long eventId;
+    private final UserShortDto author;
+    private final CommentStatus status;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    LocalDateTime createdOn;
+    private final LocalDateTime createdOn;
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
-    LocalDateTime updatedOn;
+    private final LocalDateTime updatedOn;
 }
-

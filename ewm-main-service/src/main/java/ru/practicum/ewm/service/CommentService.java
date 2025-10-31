@@ -19,6 +19,7 @@ import ru.practicum.ewm.model.*;
 import ru.practicum.ewm.repository.CommentRepository;
 import ru.practicum.ewm.repository.EventRepository;
 import ru.practicum.ewm.repository.UserRepository;
+import ru.practicum.ewm.repository.specification.CommentSpecifications;
 import ru.practicum.ewm.util.PaginationUtil;
 
 import java.time.Clock;
@@ -102,15 +103,9 @@ public class CommentService {
                                                 int from,
                                                 int size) {
         Pageable pageable = PaginationUtil.offsetPageable(from, size, Sort.by(Sort.Direction.DESC, "createdOn"));
-        Specification<Comment> spec = specification(status);
-        if (eventId != null) {
-            Specification<Comment> byEvent = (root, query, cb) -> cb.equal(root.get("event").get("id"), eventId);
-            spec = spec == null ? Specification.where(byEvent) : spec.and(byEvent);
-        }
-        if (authorId != null) {
-            Specification<Comment> byAuthor = (root, query, cb) -> cb.equal(root.get("author").get("id"), authorId);
-            spec = spec == null ? Specification.where(byAuthor) : spec.and(byAuthor);
-        }
+        Specification<Comment> spec = Specification.where(CommentSpecifications.hasStatus(status))
+                .and(CommentSpecifications.hasEventId(eventId))
+                .and(CommentSpecifications.hasAuthorId(authorId));
         return commentRepository.findAll(spec, pageable).stream()
                 .map(CommentMapper::toDto)
                 .toList();
@@ -143,16 +138,8 @@ public class CommentService {
         log.info("Administrator deleted comment id={}", commentId);
     }
 
-    private Specification<Comment> specification(CommentStatus status) {
-        if (status == null) {
-            return null;
-        }
-        return (root, query, cb) -> cb.equal(root.get("status"), status);
-    }
-
     private Event getPublishedEvent(long eventId) {
-        return eventRepository.findById(eventId)
-                .filter(event -> event.getState() == EventState.PUBLISHED)
+        return eventRepository.findByIdAndState(eventId, EventState.PUBLISHED)
                 .orElseThrow(() -> new NotFoundException("Event with id=%d was not found".formatted(eventId)));
     }
 
@@ -167,4 +154,3 @@ public class CommentService {
         }
     }
 }
-

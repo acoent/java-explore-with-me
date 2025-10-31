@@ -4,18 +4,184 @@
     "name": "ExploreWithMe Comments Feature",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "const root = (function () { return this || global; })();",
+          "if (!root.commentHelper) {",
+          "    const helper = {};",
+          "    helper.buildUrl = function (path) {",
+          "        const base = pm.collectionVariables.get('baseUrl');",
+          "        if (!base) {",
+          "            throw new Error('Collection variable \"baseUrl\" is not set');",
+          "        }",
+          "        return base + path;",
+          "    };",
+          "    helper.formatDate = function (hoursAhead) {",
+          "        const date = new Date(Date.now() + (hoursAhead || 24) * 60 * 60 * 1000);",
+          "        const pad = function (value) {",
+          "            return value.toString().padStart(2, '0');",
+          "        };",
+          "        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' ' +",
+          "            pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());",
+          "    };",
+          "    helper.buildRequest = function (method, path, body) {",
+          "        const request = {",
+          "            url: helper.buildUrl(path),",
+          "            method: method,",
+          "            header: { 'Content-Type': 'application/json' }",
+          "        };",
+          "        if (body !== undefined && body !== null) {",
+          "            request.body = {",
+          "                mode: 'raw',",
+          "                raw: JSON.stringify(body)",
+          "            };",
+          "        }",
+          "        return request;",
+          "    };",
+          "    helper.safeJson = function (res) {",
+          "        try {",
+          "            return res.json();",
+          "        } catch (err) {",
+          "            return null;",
+          "        }",
+          "    };",
+          "    helper.expectStatus = function (res, expected, action) {",
+          "        if (res.code !== expected) {",
+          "            throw new Error(action + ' failed. Expected ' + expected + ' but got ' + res.code);",
+          "        }",
+          "    };",
+          "    helper.send = function (method, path, body, expected, onSuccess) {",
+          "        const request = helper.buildRequest(method, path, body);",
+          "        pm.sendRequest(request, function (err, res) {",
+          "            if (err) {",
+          "                throw err;",
+          "            }",
+          "            helper.expectStatus(res, expected, method + ' ' + path);",
+          "            const data = helper.safeJson(res);",
+          "            if (onSuccess) {",
+          "                onSuccess(data, res);",
+          "            }",
+          "        });",
+          "    };",
+          "    helper.generateSuffix = function (label) {",
+          "        const uniquifier = Math.floor(Math.random() * 100000);",
+          "        return Date.now().toString(36) + '-' + label + '-' + uniquifier;",
+          "    };",
+          "    helper.createCategory = function (suffix, next) {",
+          "        helper.send('POST', '/admin/categories', { name: 'comments-category-' + suffix }, 201, function (data) {",
+          "            next(data.id);",
+          "        });",
+          "    };",
+          "    helper.createUser = function (prefix, suffix, next) {",
+          "        helper.send('POST', '/admin/users', {",
+          "            email: prefix + '-' + suffix + '@test.com',",
+          "            name: prefix.charAt(0).toUpperCase() + prefix.slice(1) + ' ' + suffix",
+          "        }, 201, function (data) {",
+          "            next(data.id);",
+          "        });",
+          "    };",
+          "    helper.createEvent = function (initiatorId, categoryId, suffix, next) {",
+          "        helper.send('POST', '/users/' + initiatorId + '/events', {",
+          "            annotation: 'Annotation for comment workflow ' + suffix + ' ensures adequate length.',",
+          "            category: categoryId,",
+          "            description: 'Detailed description for comment workflow ' + suffix + ' to satisfy validation requirements.',",
+          "            eventDate: helper.formatDate(48),",
+          "            location: { lat: 55.751244, lon: 37.618423 },",
+          "            paid: false,",
+          "            participantLimit: 0,",
+          "            requestModeration: false,",
+          "            title: 'Comment event ' + suffix",
+          "        }, 201, function (data) {",
+          "            next(data.id);",
+          "        });",
+          "    };",
+          "    helper.publishEvent = function (eventId, next) {",
+          "        helper.send('PATCH', '/admin/events/' + eventId, { stateAction: 'PUBLISH_EVENT' }, 200, function () {",
+          "            next();",
+          "        });",
+          "    };",
+          "    helper.createComment = function (userId, eventId, text, next) {",
+          "        helper.send('POST', '/users/' + userId + '/comments?eventId=' + eventId, { text: text }, 201, function (data) {",
+          "            next(data.id);",
+          "        });",
+          "    };",
+          "    helper.moderateComment = function (commentId, status, next) {",
+          "        helper.send('PATCH', '/admin/comments/' + commentId, { status: status }, 200, function () {",
+          "            next();",
+          "        });",
+          "    };",
+          "    helper.bootstrap = function (options) {",
+          "        const suffix = options.suffix;",
+          "        const commentText = options.commentText || ('Комментарий ' + suffix);",
+          "        helper.createCategory(suffix, function (categoryId) {",
+          "            helper.createUser('initiator', suffix, function (initiatorId) {",
+          "                helper.createEvent(initiatorId, categoryId, suffix, function (eventId) {",
+          "                    helper.publishEvent(eventId, function () {",
+          "                        helper.createUser('commenter', suffix, function (userId) {",
+          "                            const context = {",
+          "                                suffix: suffix,",
+          "                                categoryId: categoryId,",
+          "                                initiatorId: initiatorId,",
+          "                                eventId: eventId,",
+          "                                userId: userId,",
+          "                                commentText: commentText",
+          "                            };",
+          "                            const finalize = function (updatedContext) {",
+          "                                const ctx = updatedContext || context;",
+          "                                if (options.onComplete) {",
+          "                                    options.onComplete(ctx);",
+          "                                }",
+          "                            };",
+          "                            if (options.createComment) {",
+          "                                helper.createComment(userId, eventId, commentText, function (commentId) {",
+          "                                    context.commentId = commentId;",
+          "                                    if (options.afterCreate) {",
+          "                                        options.afterCreate(context, finalize);",
+          "                                    } else {",
+          "                                        finalize(context);",
+          "                                    }",
+          "                                });",
+          "                            } else {",
+          "                                finalize(context);",
+          "                            }",
+          "                        });",
+          "                    });",
+          "                });",
+          "            });",
+          "        });",
+          "    };",
+          "    root.commentHelper = helper;",
+          "}"
+        ]
+      }
+    }
+  ],
   "item": [
     {
-      "name": "Create Category",
+      "name": "Create Comment (User)",
       "event": [
         {
           "listen": "prerequest",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "if (!pm.collectionVariables.get('traceSuffix')) {",
-              "    pm.collectionVariables.set('traceSuffix', Date.now().toString());",
-              "}"
+              "const helper = commentHelper;",
+              "const suffix = helper.generateSuffix('create-comment');",
+              "const commentText = 'Комментарий ' + suffix;",
+              "helper.bootstrap({",
+              "    suffix: suffix,",
+              "    commentText: commentText,",
+              "    createComment: false,",
+              "    onComplete: function (ctx) {",
+              "        pm.variables.set('userId', ctx.userId);",
+              "        pm.variables.set('eventId', ctx.eventId);",
+              "        pm.variables.set('commentText', commentText);",
+              "    }",
+              "});"
             ]
           }
         },
@@ -24,11 +190,11 @@
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Category created', function () {",
+              "pm.test('Comment created in pending status', function () {",
               "    pm.response.to.have.status(201);",
               "    const body = pm.response.json();",
               "    pm.expect(body).to.have.property('id');",
-              "    pm.collectionVariables.set('categoryId', body.id);",
+              "    pm.expect(body.status).to.eql('PENDING');",
               "});"
             ]
           }
@@ -44,284 +210,22 @@
         ],
         "body": {
           "mode": "raw",
-          "raw": "{\n  \"name\": \"comments-category-{{traceSuffix}}\"\n}"
+          "raw": "{\n  \"text\": \"{{commentText}}\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/admin/categories",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "admin",
-            "categories"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Create Event Initiator",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Initiator created', function () {",
-              "    pm.response.to.have.status(201);",
-              "    const body = pm.response.json();",
-              "    pm.expect(body).to.have.property('id');",
-              "    pm.collectionVariables.set('initiatorId', body.id);",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"initiator-{{traceSuffix}}@test.com\",\n  \"name\": \"Initiator {{traceSuffix}}\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/admin/users",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "admin",
-            "users"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Create Comment Author",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Comment author created', function () {",
-              "    pm.response.to.have.status(201);",
-              "    const body = pm.response.json();",
-              "    pm.expect(body).to.have.property('id');",
-              "    pm.collectionVariables.set('userId', body.id);",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"email\": \"commenter-{{traceSuffix}}@test.com\",\n  \"name\": \"Commenter {{traceSuffix}}\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/admin/users",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "admin",
-            "users"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Create Event",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const eventDate = new Date(Date.now() + 4 * 60 * 60 * 1000)",
-              "    .toISOString()",
-              "    .replace('T', ' ')",
-              "    .substring(0, 19);",
-              "pm.collectionVariables.set('eventDate', eventDate);"
-            ]
-          }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Event created', function () {",
-              "    pm.response.to.have.status(201);",
-              "    const body = pm.response.json();",
-              "    pm.expect(body).to.have.property('id');",
-              "    pm.collectionVariables.set('eventId', body.id);",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"annotation\": \"Annotation for comments {{traceSuffix}}\",\n  \"category\": {{categoryId}},\n  \"description\": \"Description for comments {{traceSuffix}}\",\n  \"eventDate\": \"{{eventDate}}\",\n  \"location\": {\n    \"lat\": 55.75,\n    \"lon\": 37.62\n  },\n  \"paid\": false,\n  \"participantLimit\": 10,\n  \"requestModeration\": true,\n  \"title\": \"Event for comments {{traceSuffix}}\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/users/{{initiatorId}}/events",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "{{initiatorId}}",
-            "events"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Publish Event",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Event published', function () {",
-              "    pm.response.to.have.status(200);",
-              "    const body = pm.response.json();",
-              "    pm.expect(body.state).to.eql('PUBLISHED');",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"stateAction\": \"PUBLISH_EVENT\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/admin/events/{{eventId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "admin",
-            "events",
-            "{{eventId}}"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Create Comment",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Comment created', function () {",
-              "    pm.response.to.have.status(201);",
-              "    const data = pm.response.json();",
-              "    pm.expect(data).to.have.property('id');",
-              "    pm.expect(data.status).to.eql('PENDING');",
-              "    pm.collectionVariables.set('commentId', data.id);",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"text\": \"Отличное событие!\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/users/{{userId}}/events/{{eventId}}/comments",
+          "raw": "{{baseUrl}}/users/{{userId}}/comments?eventId={{eventId}}",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "users",
             "{{userId}}",
-            "events",
-            "{{eventId}}",
-            "comments"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Get Pending Comments (Admin)",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Pending comments retrieved', function () {",
-              "    pm.response.to.have.status(200);",
-              "    const data = pm.response.json();",
-              "    pm.expect(Array.isArray(data)).to.be.true;",
-              "    pm.expect(data.length).to.be.above(0);",
-              "    if (data.length > 0) {",
-              "        pm.collectionVariables.set('commentId', data[0].id);",
-              "    }",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/admin/comments?status=PENDING",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "admin",
             "comments"
           ],
           "query": [
             {
-              "key": "status",
-              "value": "PENDING"
+              "key": "eventId",
+              "value": "{{eventId}}"
             }
           ]
         }
@@ -331,14 +235,32 @@
       "name": "Publish Comment (Admin)",
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const helper = commentHelper;",
+              "const suffix = helper.generateSuffix('publish-comment');",
+              "helper.bootstrap({",
+              "    suffix: suffix,",
+              "    createComment: true,",
+              "    onComplete: function (ctx) {",
+              "        pm.variables.set('commentId', ctx.commentId);",
+              "    }",
+              "});"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Comment published', function () {",
+              "pm.test('Comment published by admin', function () {",
               "    pm.response.to.have.status(200);",
-              "    const data = pm.response.json();",
-              "    pm.expect(data.status).to.eql('PUBLISHED');",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.status).to.eql('PUBLISHED');",
+              "    pm.expect(body).to.have.property('updatedOn');",
               "});"
             ]
           }
@@ -370,19 +292,176 @@
       }
     },
     {
-      "name": "Get Event Comments (Public)",
+      "name": "Reject Comment (Admin)",
       "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const helper = commentHelper;",
+              "const suffix = helper.generateSuffix('reject-comment');",
+              "helper.bootstrap({",
+              "    suffix: suffix,",
+              "    createComment: true,",
+              "    onComplete: function (ctx) {",
+              "        pm.variables.set('commentId', ctx.commentId);",
+              "    }",
+              "});"
+            ]
+          }
+        },
         {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Published comments visible', function () {",
+              "pm.test('Comment rejected by admin', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.status).to.eql('REJECTED');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"REJECTED\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/admin/comments/{{commentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "admin",
+            "comments",
+            "{{commentId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Update Comment Resets Status (User)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const helper = commentHelper;",
+              "const suffix = helper.generateSuffix('update-comment');",
+              "const updatedText = 'Обновленный комментарий ' + suffix;",
+              "helper.bootstrap({",
+              "    suffix: suffix,",
+              "    createComment: true,",
+              "    afterCreate: function (ctx, done) {",
+              "        helper.moderateComment(ctx.commentId, 'PUBLISHED', function () {",
+              "            done(ctx);",
+              "        });",
+              "    },",
+              "    onComplete: function (ctx) {",
+              "        pm.variables.set('userId', ctx.userId);",
+              "        pm.variables.set('commentId', ctx.commentId);",
+              "        pm.variables.set('updatedCommentText', updatedText);",
+              "    }",
+              "});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Comment text updated and status reset to pending', function () {",
+              "    pm.response.to.have.status(200);",
+              "    const body = pm.response.json();",
+              "    pm.expect(body.status).to.eql('PENDING');",
+              "    pm.expect(body.text).to.eql(pm.variables.get('updatedCommentText'));",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"text\": \"{{updatedCommentText}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "users",
+            "{{userId}}",
+            "comments",
+            "{{commentId}}"
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Published Comments (Public)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const helper = commentHelper;",
+              "const suffix = helper.generateSuffix('public-comments');",
+              "const commentText = 'Комментарий ' + suffix;",
+              "helper.bootstrap({",
+              "    suffix: suffix,",
+              "    commentText: commentText,",
+              "    createComment: true,",
+              "    afterCreate: function (ctx, done) {",
+              "        helper.moderateComment(ctx.commentId, 'PUBLISHED', function () {",
+              "            done(ctx);",
+              "        });",
+              "    },",
+              "    onComplete: function (ctx) {",
+              "        pm.variables.set('eventId', ctx.eventId);",
+              "        pm.variables.set('commentText', commentText);",
+              "    }",
+              "});"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Published comments are visible publicly', function () {",
               "    pm.response.to.have.status(200);",
               "    const data = pm.response.json();",
               "    pm.expect(Array.isArray(data)).to.be.true;",
               "    pm.expect(data.length).to.be.above(0);",
               "    pm.expect(data[0].status).to.eql('PUBLISHED');",
+              "    const match = data.some(function (comment) {",
+              "        return comment.text === pm.variables.get('commentText');",
+              "    });",
+              "    pm.expect(match).to.be.true;",
               "});"
             ]
           }
@@ -404,57 +483,32 @@
       }
     },
     {
-      "name": "Update Comment (User)",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Comment updated and returned to moderation', function () {",
-              "    pm.response.to.have.status(200);",
-              "    const data = pm.response.json();",
-              "    pm.expect(data.status).to.eql('PENDING');",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"text\": \"Обновлённый комментарий\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "{{userId}}",
-            "comments",
-            "{{commentId}}"
-          ]
-        }
-      }
-    },
-    {
       "name": "Delete Comment (User)",
       "event": [
         {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "const helper = commentHelper;",
+              "const suffix = helper.generateSuffix('delete-comment');",
+              "helper.bootstrap({",
+              "    suffix: suffix,",
+              "    createComment: true,",
+              "    onComplete: function (ctx) {",
+              "        pm.variables.set('userId', ctx.userId);",
+              "        pm.variables.set('commentId', ctx.commentId);",
+              "    }",
+              "});"
+            ]
+          }
+        },
+        {
           "listen": "test",
           "script": {
             "type": "text/javascript",
             "exec": [
-              "pm.test('Comment deleted', function () {",
+              "pm.test('Comment deleted by user', function () {",
               "    pm.response.to.have.status(204);",
               "});"
             ]

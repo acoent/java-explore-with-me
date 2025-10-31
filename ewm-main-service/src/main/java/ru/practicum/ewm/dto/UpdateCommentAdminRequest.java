@@ -10,7 +10,7 @@ import ru.practicum.ewm.model.CommentStatus;
 public class UpdateCommentAdminRequest {
 
     @NotNull
-    CommentStatus status;
+    private final CommentStatus status;
 
     @JsonCreator
     public UpdateCommentAdminRequest(@JsonProperty("status") CommentStatus status) {
