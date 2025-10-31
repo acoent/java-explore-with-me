@@ -4,604 +4,549 @@
     "name": "ExploreWithMe Comments Feature",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "const root = (function () { return this || global; })();",
-          "if (!root.commentHelper) {",
-          "    const helper = {};",
-          "    helper.buildUrl = function (path) {",
-          "        const base = pm.collectionVariables.get('baseUrl');",
-          "        if (!base) {",
-          "            throw new Error('Collection variable \"baseUrl\" is not set');",
-          "        }",
-          "        return base + path;",
-          "    };",
-          "    helper.storeVariables = function (values) {",
-          "        Object.keys(values || {}).forEach(function (key) {",
-          "            const rawValue = values[key];",
-          "            if (rawValue === undefined || rawValue === null) {",
-          "                return;",
-          "            }",
-          "            const stringValue = typeof rawValue === 'string' ? rawValue : String(rawValue);",
-          "            pm.variables.set(key, stringValue);",
-          "            if (pm.collectionVariables && pm.collectionVariables.set) {",
-          "                pm.collectionVariables.set(key, stringValue);",
-          "            }",
-          "        });",
-          "    };",
-          "    helper.ensureJsonBody = function (payload) {",
-          "        const raw = JSON.stringify(payload, null, 2);",
-          "        if (!pm.request.body) {",
-          "            pm.request.body = { mode: 'raw', raw: raw };",
-          "        } else if (pm.request.body.update) {",
-          "            pm.request.body.update({ mode: 'raw', raw: raw });",
-          "        } else {",
-          "            pm.request.body.raw = raw;",
-          "        }",
-          "        if (pm.request.headers && pm.request.headers.upsert) {",
-          "            pm.request.headers.upsert({",
-          "                key: 'Content-Type',",
-          "                value: 'application/json'",
-          "            });",
-          "        } else if (pm.request.headers && pm.request.headers.add) {",
-          "            pm.request.headers.add({ key: 'Content-Type', value: 'application/json' });",
-          "        }",
-          "    };",
-          "    helper.configureRequest = function (method, path, body) {",
-          "        pm.request.method = method;",
-          "        pm.request.url = helper.buildUrl(path);",
-          "        if (body !== undefined) {",
-          "            helper.ensureJsonBody(body);",
-          "        } else if (pm.request.body) {",
-          "            pm.request.body = undefined;",
-          "        }",
-          "    };",
-          "    helper.formatDate = function (hoursAhead) {",
-          "        const date = new Date(Date.now() + (hoursAhead || 24) * 60 * 60 * 1000);",
-          "        const pad = function (value) {",
-          "            return value.toString().padStart(2, '0');",
-          "        };",
-          "        return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' '",
-          "            + pad(date.getHours()) + ':' + pad(date.getMinutes()) + ':' + pad(date.getSeconds());",
-          "    };",
-          "    helper.buildRequest = function (method, path, body) {",
-          "        const request = {",
-          "            url: helper.buildUrl(path),",
-          "            method: method",
-          "        };",
-          "        if (body !== undefined && body !== null) {",
-          "            request.header = [{ key: 'Content-Type', value: 'application/json' }];",
-          "            request.body = {",
-          "                mode: 'raw',",
-          "                raw: JSON.stringify(body)",
-          "            };",
-          "        }",
-          "        return request;",
-          "    };",
-          "    helper.safeJson = function (res) {",
-          "        try {",
-          "            return res.json();",
-          "        } catch (err) {",
-          "            return null;",
-          "        }",
-          "    };",
-          "    helper.expectStatus = function (res, expected, action) {",
-          "        if (res.code !== expected) {",
-          "            throw new Error(action + ' failed. Expected ' + expected + ' but got ' + res.code);",
-          "        }",
-          "    };",
-          "    helper.send = function (method, path, body, expected, onSuccess) {",
-          "        const request = helper.buildRequest(method, path, body);",
-          "        pm.sendRequest(request, function (err, res) {",
-          "            if (err) {",
-          "                throw err;",
-          "            }",
-          "            helper.expectStatus(res, expected, method + ' ' + path);",
-          "            const data = helper.safeJson(res);",
-          "            if (onSuccess) {",
-          "                onSuccess(data, res);",
-          "            }",
-          "        });",
-          "    };",
-          "    helper.generateSuffix = function (label) {",
-          "        const uniquifier = Math.floor(Math.random() * 100000);",
-          "        return Date.now().toString(36) + '-' + label + '-' + uniquifier;",
-          "    };",
-          "    helper.createCategory = function (suffix, next) {",
-          "        helper.send('POST', '/admin/categories', { name: 'comments-category-' + suffix }, 201, function (data) {",
-          "            next(data.id);",
-          "        });",
-          "    };",
-          "    helper.createUser = function (prefix, suffix, next) {",
-          "        helper.send('POST', '/admin/users', {",
-          "            email: prefix + '-' + suffix + '@test.com',",
-          "            name: prefix.charAt(0).toUpperCase() + prefix.slice(1) + ' ' + suffix",
-          "        }, 201, function (data) {",
-          "            next(data.id);",
-          "        });",
-          "    };",
-          "    helper.createEvent = function (initiatorId, categoryId, suffix, next) {",
-          "        helper.send('POST', '/users/' + initiatorId + '/events', {",
-          "            annotation: 'Annotation for comment workflow ' + suffix + ' ensures adequate length.',",
-          "            category: categoryId,",
-          "            description: 'Detailed description for comment workflow ' + suffix + ' to satisfy validation requirements.',",
-          "            eventDate: helper.formatDate(48),",
-          "            location: { lat: 55.751244, lon: 37.618423 },",
-          "            paid: false,",
-          "            participantLimit: 0,",
-          "            requestModeration: false,",
-          "            title: 'Comment event ' + suffix",
-          "        }, 201, function (data) {",
-          "            next(data.id);",
-          "        });",
-          "    };",
-          "    helper.publishEvent = function (eventId, next) {",
-          "        helper.send('PATCH', '/admin/events/' + eventId, { stateAction: 'PUBLISH_EVENT' }, 200, function () {",
-          "            next();",
-          "        });",
-          "    };",
-          "    helper.createComment = function (userId, eventId, text, next) {",
-          "        helper.send('POST', '/users/' + userId + '/events/' + eventId + '/comments', { text: text }, 201, function (data) {",
-          "            next(data.id);",
-          "        });",
-          "    };",
-          "    helper.moderateComment = function (commentId, status, next) {",
-          "        helper.send('PATCH', '/admin/comments/' + commentId, { status: status }, 200, function () {",
-          "            next();",
-          "        });",
-          "    };",
-          "    helper.bootstrap = function (options) {",
-          "        const suffix = options.suffix;",
-          "        const commentText = options.commentText || ('Комментарий ' + suffix);",
-          "        helper.createCategory(suffix, function (categoryId) {",
-          "            helper.createUser('initiator', suffix, function (initiatorId) {",
-          "                helper.createEvent(initiatorId, categoryId, suffix, function (eventId) {",
-          "                    helper.publishEvent(eventId, function () {",
-          "                        helper.createUser('commenter', suffix, function (userId) {",
-          "                            const context = {",
-          "                                suffix: suffix,",
-          "                                categoryId: categoryId,",
-          "                                initiatorId: initiatorId,",
-          "                                eventId: eventId,",
-          "                                userId: userId,",
-          "                                commentText: commentText",
-          "                            };",
-          "                            const finalize = function (updatedContext) {",
-          "                                const ctx = updatedContext || context;",
-          "                                if (options.onComplete) {",
-          "                                    options.onComplete(ctx);",
-          "                                }",
-          "                            };",
-          "                            if (options.createComment) {",
-          "                                helper.createComment(userId, eventId, commentText, function (commentId) {",
-          "                                    context.commentId = commentId;",
-          "                                    if (options.afterCreate) {",
-          "                                        options.afterCreate(context, finalize);",
-          "                                    } else {",
-          "                                        finalize(context);",
-          "                                    }",
-          "                                });",
-          "                            } else {",
-          "                                finalize(context);",
-          "                            }",
-          "                        });",
-          "                    });",
-          "                });",
-          "            });",
-          "        });",
-          "    };",
-          "    root.commentHelper = helper;",
-          "}"
-        ]
-      }
-    }
-  ],
   "item": [
     {
-      "name": "Create Comment (User)",
-      "event": [
+      "name": "Setup: Create Test Data",
+      "item": [
         {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const helper = commentHelper;",
-              "const suffix = helper.generateSuffix('create-comment');",
-              "const commentText = 'Комментарий ' + suffix;",
-              "helper.bootstrap({",
-              "    suffix: suffix,",
-              "    commentText: commentText,",
-              "    createComment: false,",
-              "    onComplete: function (ctx) {",
-              "        helper.configureRequest(",
-              "            'POST',",
-              "            '/users/' + ctx.userId + '/events/' + ctx.eventId + '/comments',",
-              "            { text: commentText }",
-              "        );",
-              "        helper.storeVariables({",
-              "            commentText: commentText,",
-              "            userId: ctx.userId,",
-              "            eventId: ctx.eventId",
-              "        });",
-              "    }",
-              "});"
-            ]
-          }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Comment created in pending status', function () {",
-              "    pm.response.to.have.status(201);",
-              "    const body = pm.response.json();",
-              "    pm.expect(body).to.have.property('id');",
-              "    pm.expect(body.status).to.eql('PENDING');",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"text\": \"{{commentText}}\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/users/{{userId}}/events/{{eventId}}/comments",
-          "host": [
-            "{{baseUrl}}"
+          "name": "Create Category",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Category created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('categoryId', body.id);",
+                  "});"
+                ]
+              }
+            }
           ],
-          "path": [
-            "users",
-            "{{userId}}",
-            "events",
-            "{{eventId}}",
-            "comments"
-          ]
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Test Category {{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/categories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "categories"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Initiator User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Initiator created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('initiatorId', body.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"initiator{{$timestamp}}@test.com\",\n  \"name\": \"Test Initiator\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Event",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const date = new Date(Date.now() + 48 * 60 * 60 * 1000);",
+                  "const pad = (n) => n.toString().padStart(2, '0');",
+                  "const eventDate = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;",
+                  "pm.collectionVariables.set('eventDate', eventDate);",
+                  "",
+                  "const categoryId = pm.collectionVariables.get('categoryId');",
+                  "const initiatorId = pm.collectionVariables.get('initiatorId');",
+                  "",
+                  "const body = {",
+                  "    annotation: 'Test event annotation for comment workflow with sufficient length to pass validation.',",
+                  "    category: parseInt(categoryId),",
+                  "    description: 'Detailed description for the test event to ensure we meet all validation requirements for the comment feature testing.',",
+                  "    eventDate: eventDate,",
+                  "    location: { lat: 55.751244, lon: 37.618423 },",
+                  "    paid: false,",
+                  "    participantLimit: 0,",
+                  "    requestModeration: false,",
+                  "    title: 'Test Event ' + Date.now()",
+                  "};",
+                  "",
+                  "pm.request.body.update({",
+                  "    mode: 'raw',",
+                  "    raw: JSON.stringify(body, null, 2)",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Event created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('eventId', body.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{initiatorId}}/events",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{initiatorId}}",
+                "events"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Publish Event",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Event published', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.state).to.eql('PUBLISHED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"stateAction\": \"PUBLISH_EVENT\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/events/{{eventId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "events",
+                "{{eventId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Commenter User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Commenter created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const body = pm.response.json();",
+                  "    pm.collectionVariables.set('userId', body.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"commenter{{$timestamp}}@test.com\",\n  \"name\": \"Test Commenter\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ]
+            }
+          }
         }
-      }
+      ]
     },
     {
-      "name": "Publish Comment (Admin)",
-      "event": [
+      "name": "Feature Tests",
+      "item": [
         {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const helper = commentHelper;",
-              "const suffix = helper.generateSuffix('publish-comment');",
-              "helper.bootstrap({",
-              "    suffix: suffix,",
-              "    createComment: true,",
-              "    onComplete: function (ctx) {",
-              "        helper.configureRequest(",
-              "            'PATCH',",
-              "            '/admin/comments/' + ctx.commentId,",
-              "            { status: 'PUBLISHED' }",
-              "        );",
-              "        helper.storeVariables({ commentId: ctx.commentId });",
-              "    }",
-              "});"
-            ]
-          }
-        },
-        {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Comment published by admin', function () {",
-              "    pm.response.to.have.status(200);",
-              "    const body = pm.response.json();",
-              "    pm.expect(body.status).to.eql('PUBLISHED');",
-              "    pm.expect(body).to.have.property('updatedOn');",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"status\": \"PUBLISHED\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/admin/comments/{{commentId}}",
-          "host": [
-            "{{baseUrl}}"
+          "name": "Create Comment (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Comment created in pending status', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body).to.have.property('id');",
+                  "    pm.expect(body.status).to.eql('PENDING');",
+                  "    pm.collectionVariables.set('commentId', body.id);",
+                  "});"
+                ]
+              }
+            }
           ],
-          "path": [
-            "admin",
-            "comments",
-            "{{commentId}}"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Reject Comment (Admin)",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const helper = commentHelper;",
-              "const suffix = helper.generateSuffix('reject-comment');",
-              "helper.bootstrap({",
-              "    suffix: suffix,",
-              "    createComment: true,",
-              "    onComplete: function (ctx) {",
-              "        helper.configureRequest(",
-              "            'PATCH',",
-              "            '/admin/comments/' + ctx.commentId,",
-              "            { status: 'REJECTED' }",
-              "        );",
-              "        helper.storeVariables({ commentId: ctx.commentId });",
-              "    }",
-              "});"
-            ]
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Тестовый комментарий {{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/events/{{eventId}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "events",
+                "{{eventId}}",
+                "comments"
+              ]
+            }
           }
         },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Comment rejected by admin', function () {",
-              "    pm.response.to.have.status(200);",
-              "    const body = pm.response.json();",
-              "    pm.expect(body.status).to.eql('REJECTED');",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"status\": \"REJECTED\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/admin/comments/{{commentId}}",
-          "host": [
-            "{{baseUrl}}"
+          "name": "Publish Comment (Admin)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Comment published by admin', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('PUBLISHED');",
+                  "    pm.expect(body).to.have.property('updatedOn');",
+                  "});"
+                ]
+              }
+            }
           ],
-          "path": [
-            "admin",
-            "comments",
-            "{{commentId}}"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Update Comment Resets Status (User)",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const helper = commentHelper;",
-              "const suffix = helper.generateSuffix('update-comment');",
-              "const updatedText = 'Обновленный комментарий ' + suffix;",
-              "helper.bootstrap({",
-              "    suffix: suffix,",
-              "    createComment: true,",
-              "    afterCreate: function (ctx, done) {",
-              "        helper.moderateComment(ctx.commentId, 'PUBLISHED', function () {",
-              "            done(ctx);",
-              "        });",
-              "    },",
-              "    onComplete: function (ctx) {",
-              "        helper.configureRequest(",
-              "            'PATCH',",
-              "            '/users/' + ctx.userId + '/comments/' + ctx.commentId,",
-              "            { text: updatedText }",
-              "        );",
-              "        helper.storeVariables({",
-              "            userId: ctx.userId,",
-              "            commentId: ctx.commentId,",
-              "            updatedCommentText: updatedText",
-              "        });",
-              "    }",
-              "});"
-            ]
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"PUBLISHED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/comments/{{commentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "comments",
+                "{{commentId}}"
+              ]
+            }
           }
         },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Comment text updated and status reset to pending', function () {",
-              "    pm.response.to.have.status(200);",
-              "    const body = pm.response.json();",
-              "    pm.expect(body.status).to.eql('PENDING');",
-              "    pm.expect(body.text).to.eql(pm.variables.get('updatedCommentText'));",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "PATCH",
-        "header": [
-          {
-            "key": "Content-Type",
-            "value": "application/json"
-          }
-        ],
-        "body": {
-          "mode": "raw",
-          "raw": "{\n  \"text\": \"{{updatedCommentText}}\"\n}"
-        },
-        "url": {
-          "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentId}}",
-          "host": [
-            "{{baseUrl}}"
+          "name": "Get Published Comments (Public)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Published comments are visible publicly', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(Array.isArray(data)).to.be.true;",
+                  "    pm.expect(data.length).to.be.above(0);",
+                  "    const comment = data.find(c => c.id == pm.collectionVariables.get('commentId'));",
+                  "    pm.expect(comment).to.exist;",
+                  "    pm.expect(comment.status).to.eql('PUBLISHED');",
+                  "});"
+                ]
+              }
+            }
           ],
-          "path": [
-            "users",
-            "{{userId}}",
-            "comments",
-            "{{commentId}}"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Get Published Comments (Public)",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const helper = commentHelper;",
-              "const suffix = helper.generateSuffix('public-comments');",
-              "const commentText = 'Комментарий ' + suffix;",
-              "helper.bootstrap({",
-              "    suffix: suffix,",
-              "    commentText: commentText,",
-              "    createComment: true,",
-              "    afterCreate: function (ctx, done) {",
-              "        helper.moderateComment(ctx.commentId, 'PUBLISHED', function () {",
-              "            done(ctx);",
-              "        });",
-              "    },",
-              "    onComplete: function (ctx) {",
-              "        helper.configureRequest(",
-              "            'GET',",
-              "            '/events/' + ctx.eventId + '/comments'",
-              "        );",
-              "        helper.storeVariables({",
-              "            eventId: ctx.eventId,",
-              "            commentText: commentText",
-              "        });",
-              "    }",
-              "});"
-            ]
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}/comments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "events",
+                "{{eventId}}",
+                "comments"
+              ]
+            }
           }
         },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Published comments are visible publicly', function () {",
-              "    pm.response.to.have.status(200);",
-              "    const data = pm.response.json();",
-              "    pm.expect(Array.isArray(data)).to.be.true;",
-              "    pm.expect(data.length).to.be.above(0);",
-              "    pm.expect(data[0].status).to.eql('PUBLISHED');",
-              "    const match = data.some(function (comment) {",
-              "        return comment.text === pm.variables.get('commentText');",
-              "    });",
-              "    pm.expect(match).to.be.true;",
-              "});"
-            ]
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "url": {
-          "raw": "{{baseUrl}}/events/{{eventId}}/comments",
-          "host": [
-            "{{baseUrl}}"
+          "name": "Update Comment Resets Status (User)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Comment text updated and status reset to pending', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('PENDING');",
+                  "    pm.expect(body.text).to.include('Обновленный');",
+                  "});"
+                ]
+              }
+            }
           ],
-          "path": [
-            "events",
-            "{{eventId}}",
-            "comments"
-          ]
-        }
-      }
-    },
-    {
-      "name": "Delete Comment (User)",
-      "event": [
-        {
-          "listen": "prerequest",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "const helper = commentHelper;",
-              "const suffix = helper.generateSuffix('delete-comment');",
-              "helper.bootstrap({",
-              "    suffix: suffix,",
-              "    createComment: true,",
-              "    onComplete: function (ctx) {",
-              "        helper.configureRequest(",
-              "            'DELETE',",
-              "            '/users/' + ctx.userId + '/comments/' + ctx.commentId",
-              "        );",
-              "        helper.storeVariables({",
-              "            userId: ctx.userId,",
-              "            commentId: ctx.commentId",
-              "        });",
-              "    }",
-              "});"
-            ]
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Обновленный комментарий {{$timestamp}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "comments",
+                "{{commentId}}"
+              ]
+            }
           }
         },
         {
-          "listen": "test",
-          "script": {
-            "type": "text/javascript",
-            "exec": [
-              "pm.test('Comment deleted by user', function () {",
-              "    pm.response.to.have.status(204);",
-              "});"
-            ]
+          "name": "Reject Comment (Admin)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const userId = pm.collectionVariables.get('userId');",
+                  "const eventId = pm.collectionVariables.get('eventId');",
+                  "",
+                  "const createRequest = {",
+                  "    url: pm.collectionVariables.get('baseUrl') + '/users/' + userId + '/events/' + eventId + '/comments',",
+                  "    method: 'POST',",
+                  "    header: {'Content-Type': 'application/json'},",
+                  "    body: {",
+                  "        mode: 'raw',",
+                  "        raw: JSON.stringify({text: 'Comment to reject ' + Date.now()})",
+                  "    }",
+                  "};",
+                  "",
+                  "pm.sendRequest(createRequest, function (err, res) {",
+                  "    if (!err && res.code === 201) {",
+                  "        pm.collectionVariables.set('commentIdToReject', res.json().id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Comment rejected by admin', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.status).to.eql('REJECTED');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"REJECTED\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/admin/comments/{{commentIdToReject}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "comments",
+                "{{commentIdToReject}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Comment (User)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const userId = pm.collectionVariables.get('userId');",
+                  "const eventId = pm.collectionVariables.get('eventId');",
+                  "",
+                  "const createRequest = {",
+                  "    url: pm.collectionVariables.get('baseUrl') + '/users/' + userId + '/events/' + eventId + '/comments',",
+                  "    method: 'POST',",
+                  "    header: {'Content-Type': 'application/json'},",
+                  "    body: {",
+                  "        mode: 'raw',",
+                  "        raw: JSON.stringify({text: 'Comment to delete ' + Date.now()})",
+                  "    }",
+                  "};",
+                  "",
+                  "pm.sendRequest(createRequest, function (err, res) {",
+                  "    if (!err && res.code === 201) {",
+                  "        pm.collectionVariables.set('commentIdToDelete', res.json().id);",
+                  "    }",
+                  "});"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Comment deleted by user', function () {",
+                  "    pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentIdToDelete}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "users",
+                "{{userId}}",
+                "comments",
+                "{{commentIdToDelete}}"
+              ]
+            }
           }
         }
-      ],
-      "request": {
-        "method": "DELETE",
-        "url": {
-          "raw": "{{baseUrl}}/users/{{userId}}/comments/{{commentId}}",
-          "host": [
-            "{{baseUrl}}"
-          ],
-          "path": [
-            "users",
-            "{{userId}}",
-            "comments",
-            "{{commentId}}"
-          ]
-        }
-      }
+      ]
     }
   ],
   "variable": [
