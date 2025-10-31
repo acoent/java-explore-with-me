@@ -31,10 +31,10 @@
           "    helper.buildRequest = function (method, path, body) {",
           "        const request = {",
           "            url: helper.buildUrl(path),",
-          "            method: method,",
-          "            header: { 'Content-Type': 'application/json' }",
+          "            method: method",
           "        };",
           "        if (body !== undefined && body !== null) {",
+          "            request.header = [{ key: 'Content-Type', value: 'application/json' }];",
           "            request.body = {",
           "                mode: 'raw',",
           "                raw: JSON.stringify(body)",
@@ -105,7 +105,7 @@
           "        });",
           "    };",
           "    helper.createComment = function (userId, eventId, text, next) {",
-          "        helper.send('POST', '/users/' + userId + '/comments?eventId=' + eventId, { text: text }, 201, function (data) {",
+          "        helper.send('POST', '/users/' + userId + '/events/' + eventId + '/comments', { text: text }, 201, function (data) {",
           "            next(data.id);",
           "        });",
           "    };",
@@ -213,20 +213,16 @@
           "raw": "{\n  \"text\": \"{{commentText}}\"\n}"
         },
         "url": {
-          "raw": "{{baseUrl}}/users/{{userId}}/comments?eventId={{eventId}}",
+          "raw": "{{baseUrl}}/users/{{userId}}/events/{{eventId}}/comments",
           "host": [
             "{{baseUrl}}"
           ],
           "path": [
             "users",
             "{{userId}}",
+            "events",
+            "{{eventId}}",
             "comments"
-          ],
-          "query": [
-            {
-              "key": "eventId",
-              "value": "{{eventId}}"
-            }
           ]
         }
       }
